@@ -174,4 +174,5 @@ with ui.card(full_screen=True):
 
 @reactive.calc
 def filtered_data():
-    return penguins_df
+    isFilterMatch = penguins_df["selected_species_list"].isin(input.selected_species_list()) & penguins_df["selected_island_list"].isin(input.selected_island_list())
+    return penguins_df[isFilterMatch]
