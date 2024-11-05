@@ -1,6 +1,6 @@
 import plotly.express as px
 from shiny.express import input, ui
-from shiny import render
+from shiny import render, reactive
 from shinywidgets import render_widget, render_plotly
 import palmerpenguins  # This package provides the Palmer Penguins dataset
 from shinyswatch import theme
@@ -29,13 +29,10 @@ with ui.sidebar(bg="#8fb597"):
         inline=False 
     )
 
-    # Dropdown for selecting x and y axes for the scatter plot
-    ui.input_selectize("x_column_scatter", "Select X Axis Column:", ["bill_length_mm", "bill_depth_mm", "flipper_length_mm", "body_mass_g"])
-    ui.input_selectize("y_column_scatter", "Select Y Axis Column:", ["bill_length_mm", "bill_depth_mm", "flipper_length_mm", "body_mass_g"])
-
-    @render.text
-    def select():
-        return f"{input.selectize()}"
+    ui.div(
+        ui.hr(),  # Use ui.hr() to add a horizontal rule to the sidebar 
+        style="border-top: 2px solid #495569; margin: 10px 0;"  # Custom style for the horizontal rule
+    )  
     
     # Use ui.input_numeric() to create a numeric input for the number of Plotly histogram bins
     ui.input_numeric("plotly_bin_count", "Plotly Bin Count", 20, min=1, max=100)  
@@ -44,6 +41,11 @@ with ui.sidebar(bg="#8fb597"):
     def numeric():
         return input.numeric()
 
+    ui.div(
+        ui.hr(),  # Use ui.hr() to add a horizontal rule to the sidebar 
+        style="border-top: 2px solid #495569; margin: 10px 0;"  # Custom style for the horizontal rule
+    ) 
+    
     # Use ui.input_slider() to create a slider input for the number of Seaborn bin
     (ui.input_slider("seaborn_bin_count", "Seaborn Bin Count", 1, 50, 25),)  
 
@@ -51,11 +53,24 @@ with ui.sidebar(bg="#8fb597"):
     def slider():
         return f"{input.slider()}"
   
-
     @render.text
     def value():
         return ", ".join(input.checkbox_group())
 
+    ui.div(
+        ui.hr(),  # Use ui.hr() to add a horizontal rule to the sidebar 
+        style="border-top: 2px solid #495569; margin: 10px 0;"  # Custom style for the horizontal rule
+    )
+    ui.h4("Interactive Scatterplot")
+    
+    # Dropdown for selecting x and y axes for the scatter plot
+    ui.input_selectize("x_column_scatter", "Select X Variable:", ["bill_length_mm", "bill_depth_mm", "flipper_length_mm", "body_mass_g"])
+    ui.input_selectize("y_column_scatter", "Select Y Variable:", ["bill_length_mm", "bill_depth_mm", "flipper_length_mm", "body_mass_g"])
+    
+    @render.text
+    def select():
+        return f"{input.selectize()}"   
+        
     # Use ui.a() to add a hyperlink to the sidebar
     ui.a("Melissa's GitHub", href="https://github.com/meldstonerogers", target="_blank") 
 
@@ -147,7 +162,6 @@ with ui.card(full_screen=True):
         )
 
         return scatterplot
-
 
 # --------------------------------------------------------
 # Reactive calculations and effects
