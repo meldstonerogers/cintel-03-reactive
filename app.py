@@ -7,7 +7,8 @@ from shinyswatch import theme
 import seaborn as sns
 
 # Use the built-in function to load the Palmer Penguins dataset
-penguins_df = palmerpenguins.load_penguins()
+from palmerpenguins import load_penguins 
+penguins = load_penguins()
 
 ui.page_opts(title="Melissa's Palmer's Penguin Data Review", fillable=True, theme=theme.morph)
 
@@ -26,6 +27,15 @@ with ui.sidebar(bg="#8fb597"):
         "Select One or More Species:",
         choices=["Adelie", "Chinstrap", "Gentoo"],
         selected=["Adelie", "Chinstrap", "Gentoo"],
+        inline=False 
+    )
+
+    # Use ui.input_checkbox_group() to create a checkbox group input to filter the island
+    ui.input_checkbox_group(  
+        "selected_island_list",  
+        "Select One or More Islands:",
+        choices=["Biscoe", "Dream", "Torgersen"],
+        selected=["Biscoe", "Dream", "Torgersen"],
         inline=False 
     )
 
@@ -74,7 +84,7 @@ with ui.sidebar(bg="#8fb597"):
     # Use ui.a() to add a hyperlink to the sidebar
     ui.a("Melissa's GitHub", href="https://github.com/meldstonerogers", target="_blank") 
 
-#Main Content 
+#####Main Content##### 
 #Data Table, showing all data
 #Data Grid, showing all data
 
@@ -84,20 +94,14 @@ with ui.layout_columns():
             
             @render.data_frame  
             def plot1():
-                selected_species = input.selected_species_list()
-                if selected_species:
-                    filtered = penguins_df[penguins_df["species"].isin(selected_species)]
-                return render.DataGrid(filtered)
+                return (filtered_data())
 
     with ui.card(full_screen=True):
             ui.card_header("Data Grid")
         
             @render.data_frame  
             def plot2():
-                selected_species = input.selected_species_list()
-                if selected_species:
-                    filtered = penguins_df[penguins_df["species"].isin(selected_species)]
-                return render.DataTable(filtered)
+                return (filtered_data())
 
 with ui.layout_columns():
     #Plotly Histogram, showing all species 
@@ -105,9 +109,9 @@ with ui.layout_columns():
             ui.card_header("Plotly Histogram")
             @render_widget  
             def plot3():  
-                filtered_df = penguins_df[penguins_df["species"].isin(input.selected_species_list())]  # Filter by selected species
+                penguins = filtered_data()
                 histogram = px.histogram(
-                    filtered_df,
+                    penguins,
                     x="body_mass_g",
                     nbins=input.plotly_bin_count(),
                     color="species",
@@ -123,9 +127,9 @@ with ui.layout_columns():
             ui.card_header("Seaborn Histogram")
             @render.plot(alt="A Seaborn histogram on penguin body mass in grams.")  
             def plot4():
-                filtered_df = penguins_df[penguins_df["species"].isin(input.selected_species_list())]  # Filter by selected species
+                penguins = filtered_data()
                 ax = sns.histplot(
-                    data=filtered_df, 
+                    data = filtered_data(), 
                     x="body_mass_g", 
                     bins=input.seaborn_bin_count(), 
                     hue="species",
@@ -144,12 +148,11 @@ with ui.card(full_screen=True):
         y_column_name = input.y_column_scatter()
 
         # Filter the penguins dataset based on selected species
-        selected_species_list = input.selected_species_list()
-        filtered_penguins = penguins_df[penguins_df["species"].isin(selected_species_list)]
+        penguins = filtered_data()
 
         # Create scatter plot
         scatterplot = px.scatter(
-            data_frame=filtered_penguins,
+            data_frame = filtered_data(),
             x=x_column_name,  # X-axis based on user selection
             y=y_column_name,  # Y-axis based on user selection
             color="species",  # Color points by species
@@ -172,7 +175,11 @@ with ui.card(full_screen=True):
 # The function will be called whenever an input functions used to generate that output changes.
 # Any output that depends on the reactive function (e.g., filtered_data()) will be updated when the data changes.
 
-@reactive.calc
-def filtered_data():
-    isFilterMatch = penguins_df["selected_species_list"].isin(input.selected_species_list()) & penguins_df["selected_island_list"].isin(input.selected_island_list())
-    return penguins_df[isFilterMatch]
+# Define server logic
+    @reactive.calc
+    def filtered_data():
+        isFilterMatch = (
+            penguins["species"].isin(input.selected_species_list()) & 
+            penguins["island"].isin(input.selected_island_list())
+        )    
+        return penguins[isFilterMatch]
