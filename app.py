@@ -10,11 +10,25 @@ import seaborn as sns
 from palmerpenguins import load_penguins 
 penguins = load_penguins()
 
-ui.page_opts(title="Melissa's Palmer's Penguin Data Review", fillable=True, theme=theme.morph)
+# CSS for scrollable content
+style = """
+<style>
+    body {
+        overflow-y: auto;
+        padding: 20px;
+    }
+    .shiny-main-content {
+        max-height: 80vh; /* Limit the height of the main content */
+        overflow-y: auto; /* Add vertical scrollbar if needed */
+    }
+</style>
+"""
+
+ui.page_opts(title="Melissa's Palmer's Penguin Data Review", fillable=True, theme=theme.spacelab) + ui.HTML(style)
 
 # Add a Shiny UI sidebar for user interaction
 # Use a with block to add content to the sidebar
-with ui.sidebar(bg="#8fb597"):  
+with ui.sidebar(bg="#F6FFF8"):  
     ui.h2("Sidebar") # Use the ui.h2() function to add a 2nd level header to the sidebar    
     ui.div(
         ui.hr(),  # Use ui.hr() to add a horizontal rule to the sidebar 
@@ -75,7 +89,7 @@ with ui.sidebar(bg="#8fb597"):
     
     # Dropdown for selecting x and y axes for the scatter plot
     ui.input_selectize("x_column_scatter", "Select X Variable:", ["bill_length_mm", "bill_depth_mm", "flipper_length_mm", "body_mass_g"])
-    ui.input_selectize("y_column_scatter", "Select Y Variable:", ["bill_length_mm", "bill_depth_mm", "flipper_length_mm", "body_mass_g"])
+    ui.input_selectize("y_column_scatter", "Select Y Variable:", ["bill_length_mm", "bill_depth_mm", "flipper_length_mm", "body_mass_g"], selected="flipper_length_mm")
     
     @render.text
     def select():
@@ -88,83 +102,99 @@ with ui.sidebar(bg="#8fb597"):
 #Data Table, showing all data
 #Data Grid, showing all data
 
-with ui.layout_columns():
-    with ui.card(full_screen=True):
-            ui.card_header("Data Table")
-            
-            @render.data_frame  
-            def plot1():
-                return (filtered_data())
+with ui.div(class_="shiny-main-content"):
+    with ui.layout_columns():
+        #Plotly Histogram, showing all species 
+        with ui.card(full_screen=True):
+                ui.card_header("Plotly Histogram", 
+                              style="background-color: #F6FFF8; color: #909090;"
+                              )
+                @render_widget  
+                def plot3():  
+                    penguins = filtered_data()
+                    histogram = px.histogram(
+                        penguins,
+                        x="body_mass_g",
+                        nbins=input.plotly_bin_count(),
+                        color="species",
+                        color_discrete_sequence=["#B9EEC3", "#66DBE6", "#ECAFD0"],  # Custom colors
+                    ).update_layout(
+                        title={"text": "Penguin Mass", "x": 0.5},
+                        yaxis_title="Count",
+                        xaxis_title="Body Mass (g)",
+                    )  
+                    return histogram
 
+        #Seaborn Histogram, showing all species 
+        with ui.card(full_screen=True):
+                ui.card_header("Seaborn Histogram",
+                              style="background-color: #F6FFF8; color: #909090;"
+                              )
+                @render.plot(alt="A Seaborn histogram on penguin body mass in grams.")  
+                def plot4():
+                    penguins = filtered_data()
+                    custom_pallette = ["#B9EEC3", "#66DBE6", "#ECAFD0"]
+                    ax = sns.histplot(
+                        data = filtered_data(), 
+                        x="body_mass_g", 
+                        bins=input.seaborn_bin_count(), 
+                        hue="species",
+                        palette=custom_pallette,
+                        kde=False,)  
+                    ax.set_title("Penguins Mass")
+                    ax.set_xlabel("Mass (g)")
+                    ax.set_ylabel("Count")
+                    return ax 
+    
+    
+
+    #Plotly Scatterplot, showing all species 
     with ui.card(full_screen=True):
-            ui.card_header("Data Grid")
+        ui.card_header("Plotly Scatterplot",
+                      style="background-color: #F6FFF8; color: #909090;"
+                      )
+        @render_widget 
+        def penguins_scatter_plot():  
+            x_column_name = input.x_column_scatter()
+            y_column_name = input.y_column_scatter()
+    
+            # Filter the penguins dataset based on selected species
+            penguins = filtered_data()
+    
+            # Create scatter plot
+            scatterplot = px.scatter(
+                data_frame = filtered_data(),
+                x=x_column_name,  # X-axis based on user selection
+                y=y_column_name,  # Y-axis based on user selection
+                color="species",  # Color points by species
+                title=f"{x_column_name} vs {y_column_name}",
+                labels={x_column_name: x_column_name, y_column_name: y_column_name},  # Custom labels for axes
+                color_discrete_sequence=["#B9EEC3", "#66DBE6", "#ECAFD0"],  # Custom colors
+                
+            ).update_layout(
+                title={"text": f"{x_column_name} vs {y_column_name}", "x": 0.5},
+                yaxis_title=y_column_name,
+                xaxis_title=x_column_name,
+            )
+    
+            return scatterplot
+
+    with ui.layout_columns():
+                with ui.card(full_screen=True):
+                    ui.card_header("Data Table",
+                                  style="background-color: #F6FFF8; color: #909090;"
+                                  )
+                    @render.data_frame  
+                    def plot1():
+                        return (filtered_data())
         
-            @render.data_frame  
-            def plot2():
-                return (filtered_data())
-
-with ui.layout_columns():
-    #Plotly Histogram, showing all species 
-    with ui.card(full_screen=True):
-            ui.card_header("Plotly Histogram")
-            @render_widget  
-            def plot3():  
-                penguins = filtered_data()
-                histogram = px.histogram(
-                    penguins,
-                    x="body_mass_g",
-                    nbins=input.plotly_bin_count(),
-                    color="species",
-                ).update_layout(
-                    title={"text": "Penguin Mass", "x": 0.5},
-                    yaxis_title="Count",
-                    xaxis_title="Body Mass (g)",
-                )  
-                return histogram
-
-    #Seaborn Histogram, showing all species 
-    with ui.card(full_screen=True):
-            ui.card_header("Seaborn Histogram")
-            @render.plot(alt="A Seaborn histogram on penguin body mass in grams.")  
-            def plot4():
-                penguins = filtered_data()
-                ax = sns.histplot(
-                    data = filtered_data(), 
-                    x="body_mass_g", 
-                    bins=input.seaborn_bin_count(), 
-                    hue="species",
-                    kde=False,)  
-                ax.set_title("Penguins Mass")
-                ax.set_xlabel("Mass (g)")
-                ax.set_ylabel("Count")
-                return ax 
-
-#Plotly Scatterplot, showing all species 
-with ui.card(full_screen=True):
-    ui.card_header("Plotly Scatterplot: Species")
-    @render_widget 
-    def penguins_scatter_plot():  
-        x_column_name = input.x_column_scatter()
-        y_column_name = input.y_column_scatter()
-
-        # Filter the penguins dataset based on selected species
-        penguins = filtered_data()
-
-        # Create scatter plot
-        scatterplot = px.scatter(
-            data_frame = filtered_data(),
-            x=x_column_name,  # X-axis based on user selection
-            y=y_column_name,  # Y-axis based on user selection
-            color="species",  # Color points by species
-            title=f"{x_column_name} vs {y_column_name}",
-            labels={x_column_name: x_column_name, y_column_name: y_column_name}  # Custom labels for axes
-        ).update_layout(
-            title={"text": f"{x_column_name} vs {y_column_name}", "x": 0.5},
-            yaxis_title=y_column_name,
-            xaxis_title=x_column_name,
-        )
-
-        return scatterplot
+                with ui.card(full_screen=True):
+                        ui.card_header("Data Grid", 
+                                       style="background-color: #F6FFF8; color: #909090;"
+                                      )
+                        @render.data_frame  
+                        def plot2():
+                            return (filtered_data())    
 
 # --------------------------------------------------------
 # Reactive calculations and effects
@@ -176,10 +206,11 @@ with ui.card(full_screen=True):
 # Any output that depends on the reactive function (e.g., filtered_data()) will be updated when the data changes.
 
 # Define server logic
-    @reactive.calc
-    def filtered_data():
-        isFilterMatch = (
-            penguins["species"].isin(input.selected_species_list()) & 
-            penguins["island"].isin(input.selected_island_list())
+@reactive.calc
+def filtered_data():
+    isFilterMatch = (
+        penguins["species"].isin(input.selected_species_list()) & 
+        penguins["island"].isin(input.selected_island_list())
         )    
-        return penguins[isFilterMatch]
+    return penguins[isFilterMatch]
+
