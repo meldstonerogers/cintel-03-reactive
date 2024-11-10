@@ -1,3 +1,5 @@
+#PRACTICE CODE#
+
 import plotly.express as px
 from shiny.express import input, ui
 from shiny import render, reactive
